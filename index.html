@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Where's Ninja? Japanese Sentence Builder</title>
+<style>
+:root{
+  --bg:#eef6ff;
+  --panel:#ffffff;
+  --line:#b8c7d9;
+  --text:#000000;
+  --blue:#bfdbfe;
+  --green:#bbf7d0;
+  --purple:#e9d5ff;
+  --yellow:#fde68a;
+  --accent:#2563eb;
+  --danger:#fecaca;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+body{
+  font-family:"Segoe UI","UD Digi Kyokasho NK-R","UD Digi Kyokasho N-R",
+  "BIZ UDPGothic","Yu Kyokasho","Yu Gothic",Meiryo,sans-serif;
+  color:var(--text);
+  background:linear-gradient(180deg,#f8fbff,var(--bg));
+}
+button{font:inherit;color:#000}
+.app{
+  height:100dvh;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:8px;
+  padding:8px;
+}
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:58px;
+  padding:8px 12px;
+  background:var(--panel);
+  border:2px solid var(--line);
+  border-radius:16px;
+}
+.title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+}
+.title .ninja{font-size:2rem}
+.title h1{
+  margin:0;
+  font-size:clamp(1.25rem,2.7vw,2rem);
+  white-space:nowrap;
+}
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:7px;
+}
+.tool{
+  border:2px solid #94a3b8;
+  border-radius:11px;
+  padding:8px 12px;
+  background:#fff;
+  font-weight:700;
+  min-height:42px;
+}
+.tool:active{transform:translateY(1px)}
+.tool:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.tool.primary{background:var(--yellow)}
+.tool.danger{background:var(--danger)}
+.layout{
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(330px,38%) 1fr;
+  gap:8px;
+}
+.vocab,.workspace{
+  min-height:0;
+  background:var(--panel);
+  border:2px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+}
+.vocab{
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+.tabs{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:5px;
+  padding:7px;
+  background:#f1f5f9;
+  border-bottom:2px solid var(--line);
+}
+.tab{
+  min-height:46px;
+  border:2px solid transparent;
+  border-radius:10px;
+  font-weight:800;
+  padding:5px 3px;
+  background:#fff;
+}
+.tab[data-cat="objects"]{background:var(--blue)}
+.tab[data-cat="rooms"]{background:var(--green)}
+.tab[data-cat="preps"]{background:var(--purple)}
+.tab[data-cat="grammar"]{background:var(--yellow)}
+.tab.active{
+  border-color:#000;
+  box-shadow:inset 0 0 0 2px #fff;
+}
+.vocab-content{
+  min-height:0;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+}
+.category-heading{
+  margin:0 0 7px;
+  font-size:1.05rem;
+  text-align:center;
+}
+.vocab-grid{
+  min-height:0;
+  flex:1;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-auto-rows:minmax(72px,1fr);
+  gap:7px;
+}
+.word-card{
+  position:relative;
+  min-width:0;
+  border:2px solid #94a3b8;
+  border-radius:12px;
+  background:#fff;
+  padding:6px 28px 6px 5px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  box-shadow:0 3px 0 #cbd5e1;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.word-card:active{transform:translateY(2px);box-shadow:0 1px 0 #cbd5e1}
+.word-card .romaji,.word-card .jp{
+  display:block;
+  width:100%;
+  overflow-wrap:anywhere;
+  font-size:clamp(.88rem,1.65vw,1.25rem);
+  font-weight:800;
+  line-height:1.15;
+}
+.word-card .jp{
+  margin-top:3px;
+  font-family:"UD Digi Kyokasho NK-R","UD Digi Kyokasho N-R",
+  "BIZ UDPGothic","Yu Kyokasho","Yu Gothic",Meiryo,sans-serif;
+}
+.speak{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:28px;
+  height:28px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#e2e8f0;
+  font-size:15px;
+}
+.workspace{
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+}
+.workspace-head{
+  padding:10px 12px;
+  text-align:center;
+  background:#f8fafc;
+  border-bottom:2px solid var(--line);
+}
+.workspace-head h2{margin:0;font-size:1.2rem}
+.workspace-head p{margin:3px 0 0;font-size:.88rem}
+.sentence{
+  min-height:0;
+  padding:14px;
+  display:flex;
+  align-content:flex-start;
+  align-items:flex-start;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:9px;
+  overflow:hidden;
+  background:
+    linear-gradient(#f8fafc 1px,transparent 1px),
+    linear-gradient(90deg,#f8fafc 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.empty-message{
+  width:100%;
+  align-self:center;
+  text-align:center;
+  font-size:1.1rem;
+  color:#475569;
+}
+.sentence-card{
+  position:relative;
+  min-width:112px;
+  min-height:86px;
+  border:2px solid #64748b;
+  border-radius:13px;
+  background:#fff;
+  padding:9px 34px 28px 9px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  text-align:center;
+  box-shadow:0 4px 0 #cbd5e1;
+}
+.sentence-card .romaji,.sentence-card .jp{
+  font-size:clamp(1rem,2vw,1.35rem);
+  font-weight:800;
+  line-height:1.15;
+
+  font-family:"UD Digi Kyokasho NK-R","UD Digi Kyokasho N-R","BIZ UDPGothic","Yu Kyokasho","Yu Gothic",Meiryo,sans-serif;
+}
+.sentence-card .jp{margin-top:4px;
+  font-family:"UD Digi Kyokasho NK-R","UD Digi Kyokasho N-R","BIZ UDPGothic","Yu Kyokasho","Yu Gothic",Meiryo,sans-serif;
+}
+.remove{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:28px;
+  height:28px;
+  border:0;
+  border-radius:50%;
+  background:#fee2e2;
+  font-weight:900;
+}
+.movebar{
+  position:absolute;
+  left:4px;
+  right:4px;
+  bottom:3px;
+  display:flex;
+  justify-content:center;
+  gap:5px;
+}
+.movebar button{
+  width:34px;
+  height:23px;
+  border:1px solid #94a3b8;
+  border-radius:7px;
+  padding:0;
+  background:#f1f5f9;
+  font-weight:900;
+}
+.help{
+  padding:7px 10px;
+  border-top:2px solid var(--line);
+  background:#f8fafc;
+  text-align:center;
+  font-size:.82rem;
+}
+.hide-romaji .romaji{display:none}
+.hide-romaji .word-card,.hide-romaji .sentence-card{padding-top:8px}
+.rotate-note{display:none}
+
+@media (max-width:820px) and (orientation:portrait){
+  .layout{grid-template-columns:1fr;grid-template-rows:48% 1fr}
+  .vocab-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(60px,1fr)}
+  .word-card .romaji,.word-card .jp{font-size:clamp(.72rem,2.8vw,1rem)}
+  .topbar{min-height:52px}
+  .title h1{font-size:1.1rem}
+  .tool{padding:6px 9px;min-height:38px}
+}
+@media (max-width:560px){
+  .title h1{display:none}
+  .toolbar{gap:4px}
+  .tool{font-size:.8rem;padding:5px 7px}
+  .tabs{gap:3px;padding:4px}
+  .tab{font-size:.72rem;min-height:40px}
+}
+
+/* Category colour-coding */
+.word-card.objects, .sentence-card.objects { background: var(--blue); }
+.word-card.rooms, .sentence-card.rooms { background: var(--green); }
+.word-card.preps, .sentence-card.preps { background: var(--purple); }
+.word-card.grammar, .sentence-card.grammar { background: var(--yellow); }
+
+/* Cleaner speaker icon: no grey circle */
+.speak{
+  background:transparent;
+  border-radius:0;
+  width:30px;
+  height:30px;
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Keep Japanese font consistent in both areas */
+.word-card .jp,
+.sentence-card .jp{
+  font-family:"UD Digi Kyokasho NK-R","UD Digi Kyokasho N-R",
+  "BIZ UDPGothic","Yu Kyokasho","Yu Gothic",Meiryo,sans-serif;
+}
+
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="title">
+      <span class="ninja" aria-hidden="true">🥷</span>
+      <h1>Where’s Ninja? Sentence Builder</h1>
+    </div>
+    <div class="toolbar">
+      <button class="tool primary" id="readSentenceBtn" type="button">🔊 Read Sentence</button>
+      <button class="tool primary" id="romajiBtn" type="button">Hide Romaji</button>
+      <button class="tool danger" id="clearBtn" type="button">Clear Sentence</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="vocab" aria-label="Vocabulary bank">
+      <div class="tabs" role="tablist" aria-label="Vocabulary categories">
+        <button class="tab active" data-cat="objects" type="button">Objects</button>
+        <button class="tab" data-cat="rooms" type="button">Rooms</button>
+        <button class="tab" data-cat="preps" type="button">Position</button>
+        <button class="tab" data-cat="grammar" type="button">Grammar</button>
+      </div>
+      <div class="vocab-content">
+        <h2 class="category-heading" id="categoryHeading">Objects</h2>
+        <div class="vocab-grid" id="vocabGrid"></div>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Sentence building area">
+      <div class="workspace-head">
+        <h2>Build Your Sentence</h2>
+        <p>Tap a word to add it. Use the arrows to change the order.</p>
+      </div>
+      <div class="sentence" id="sentenceZone" aria-live="polite"></div>
+      <div class="help">Tap 🔊 on a word to hear it, or tap “Read Sentence” to hear the complete sentence. Tap × to remove a word.</div>
+    </section>
+  </main>
+</div>
+
+<script>
+const audioFiles = {
+  "りんご": "ringo",
+  "いぬ": "inu",
+  "ベッド": "beddo",
+  "にんじゃ": "ninja",
+  "とり": "tori",
+  "ソファ": "sofa",
+  "はこ": "hako",
+  "テーブル": "teeburu",
+  "ねこ": "neko",
+  "トイレ": "toire",
+  "とけい": "tokei",
+  "テレビ": "terebi",
+  "うち": "uchi",
+  "おふろば": "ofuroba",
+  "げんかん": "genkan",
+  "リビングルーム": "ribinguruumu",
+  "しんしつ": "shinshitsu",
+  "わしつ": "washitsu",
+  "にわ": "niwa",
+  "だいどころ": "daidokoro",
+  "まえ": "mae",
+  "うしろ": "ushiro",
+  "となり": "tonari",
+  "上": "ue",
+  "下": "shita",
+  "中": "naka",
+  "左": "hidari",
+  "右": "migi",
+  "は": "wa",
+  "に": "ni",
+  "の": "no",
+  "と": "to",
+  "が": "ga",
+  "あります。": "arimasu",
+  "います。": "imasu"
+};
+
+const vocab = {
+  objects: {
+    title: "Objects",
+    words: [
+      ["りんご","ringo"],["いぬ","inu"],["ベッド","beddo"],
+      ["にんじゃ","ninja"],["とり","tori"],["ソファ","sofa"],
+      ["はこ","hako"],["テーブル","teeburu"],["ねこ","neko"],
+      ["トイレ","toire"],["とけい","tokei"],["テレビ","terebi"]
+    ]
+  },
+  rooms: {
+    title: "Rooms",
+    words: [
+      ["うち","uchi"],["おふろば","ofuroba"],["げんかん","genkan"],
+      ["トイレ","toire"],["リビングルーム","ribinguruumu"],
+      ["しんしつ","shinshitsu"],["わしつ","washitsu"],
+      ["にわ","niwa"],["だいどころ","daidokoro"]
+    ]
+  },
+  preps: {
+    title: "Position",
+    words: [
+      ["まえ","mae"],["うしろ","ushiro"],["となり","tonari"],
+      ["上","ue"],["下","shita"],["中","naka"],
+      ["左","hidari"],["右","migi"]
+    ]
+  },
+  grammar: {
+    title: "Grammar",
+    words: [
+      ["は","wa"],["に","ni"],["の","no"],["と","to"],
+      ["が","ga"],["あります。","arimasu"],["います。","imasu"]
+    ]
+  }
+};
+
+const app = document.getElementById("app");
+const grid = document.getElementById("vocabGrid");
+const heading = document.getElementById("categoryHeading");
+const sentenceZone = document.getElementById("sentenceZone");
+const readSentenceBtn = document.getElementById("readSentenceBtn");
+const romajiBtn = document.getElementById("romajiBtn");
+const clearBtn = document.getElementById("clearBtn");
+let sentence = [];
+
+let activeAudio = null;
+
+function fallbackSpeech(text){
+  if (!("speechSynthesis" in window)) {
+    alert("Audio is not available on this device.");
+    return;
+  }
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text.replace("。",""));
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.82;
+  const voices = speechSynthesis.getVoices();
+  const preferredNames = ["Kyoko", "O-ren", "Otoya", "Hattori"];
+  const jaVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("ja"));
+  utterance.voice =
+    jaVoices.find(v => preferredNames.some(name => v.name.includes(name))) ||
+    jaVoices[0] ||
+    null;
+  speechSynthesis.speak(utterance);
+}
+
+function speakJapanese(text){
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+  }
+  speechSynthesis?.cancel?.();
+
+  const filename = audioFiles[text];
+  if (!filename) {
+    fallbackSpeech(text);
+    return;
+  }
+
+  const audio = new Audio(filename + '.mp3');
+  activeAudio = audio;
+  audio.preload = "auto";
+  audio.play().catch(() => fallbackSpeech(text));
+}
+
+
+function readSentence(){
+  if (!sentence.length) {
+    alert("Build a sentence first.");
+    return;
+  }
+
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+  }
+  speechSynthesis?.cancel?.();
+
+  let text = sentence.map(item => item.jp).join("");
+  if (!text.endsWith("。")) text += "。";
+  fallbackSpeech(text);
+}
+
+function renderCategory(cat){
+  const data = vocab[cat];
+  heading.textContent = data.title;
+  grid.innerHTML = "";
+  data.words.forEach(([jp,romaji]) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `word-card ${cat}`;
+    card.setAttribute("aria-label", `${jp}, ${romaji}. Tap to add.`);
+    card.innerHTML = `
+      <span class="romaji">${romaji}</span>
+      <span class="jp" lang="ja">${jp}</span>
+      <span class="speak" role="button" aria-label="Hear ${jp}">🔊</span>
+    `;
+    card.addEventListener("click", e => {
+      if (e.target.closest(".speak")) {
+        e.stopPropagation();
+        speakJapanese(jp);
+        return;
+      }
+      sentence.push({jp,romaji,cat});
+      renderSentence();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderSentence(){
+  readSentenceBtn.disabled = sentence.length === 0;
+  readSentenceBtn.setAttribute("aria-disabled", sentence.length === 0 ? "true" : "false");
+  sentenceZone.innerHTML = "";
+  if (!sentence.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-message";
+    empty.textContent = "Tap vocabulary cards to begin.";
+    sentenceZone.appendChild(empty);
+    return;
+  }
+  sentence.forEach((item,index) => {
+    const card = document.createElement("div");
+    card.className = `sentence-card ${item.cat || ""}`;
+    card.innerHTML = `
+      <button class="remove" type="button" aria-label="Remove ${item.jp}">×</button>
+      <span class="romaji">${item.romaji}</span>
+      <span class="jp" lang="ja">${item.jp}</span>
+      <div class="movebar">
+        <button class="left" type="button" aria-label="Move ${item.jp} left">←</button>
+        <button class="right" type="button" aria-label="Move ${item.jp} right">→</button>
+      </div>
+    `;
+    card.querySelector(".remove").addEventListener("click", () => {
+      sentence.splice(index,1);
+      renderSentence();
+    });
+    card.querySelector(".left").addEventListener("click", () => {
+      if(index>0){
+        [sentence[index-1],sentence[index]]=[sentence[index],sentence[index-1]];
+        renderSentence();
+      }
+    });
+    card.querySelector(".right").addEventListener("click", () => {
+      if(index<sentence.length-1){
+        [sentence[index+1],sentence[index]]=[sentence[index],sentence[index+1]];
+        renderSentence();
+      }
+    });
+    card.addEventListener("dblclick", () => speakJapanese(item.jp));
+    sentenceZone.appendChild(card);
+  });
+}
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    renderCategory(tab.dataset.cat);
+  });
+});
+
+readSentenceBtn.addEventListener("click", readSentence);
+
+romajiBtn.addEventListener("click", () => {
+  app.classList.toggle("hide-romaji");
+  romajiBtn.textContent = app.classList.contains("hide-romaji")
+    ? "Show Romaji" : "Hide Romaji";
+});
+
+clearBtn.addEventListener("click", () => {
+  sentence = [];
+  renderSentence();
+});
+
+speechSynthesis?.addEventListener?.("voiceschanged", () => {});
+renderCategory("objects");
+renderSentence();
+</script>
+</body>
+</html>
